@@ -831,7 +831,9 @@ def tab_history():
 def main():
     st.set_page_config(page_title="Fake news detector",
                        page_icon=":material/fact_check:", layout="wide")
-
+  
+    _bootstrap_pipeline()
+  
     st.title("Fake news detector", anchor=False)
     st.caption("TF-IDF + classical ML (Naive Bayes / SVM / Logistic Regression) "
                "trained on the ISOT dataset - with the evidence behind every call")
