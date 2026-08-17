@@ -94,7 +94,7 @@ def _bootstrap_pipeline() -> None:
                 st.stop()
 
 
-_bootstrap_pipeline()
+
 
 RESULT_KEY = "classification_result"
 BATCH_KEY = "batch_result"
