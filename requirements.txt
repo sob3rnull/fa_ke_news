@@ -9,7 +9,7 @@ joblib>=1.4.2,<2.0.0
 matplotlib>=3.8.0,<4.0.0
 
 # Demo UI
-streamlit>=1.37.0,<1.40.0
+streamlit>=1.44.0,<1.60.0
 
 # Optional input sources (URL scraping / screenshot OCR).
 # The app degrades gracefully if these are missing - core text
