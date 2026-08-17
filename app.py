@@ -31,14 +31,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 import json
+import subprocess
 
 import joblib
 import pandas as pd
 import streamlit as st
 
-from config import (DB_PATH, FIGURES_DIR, LABEL_NAMES, METRICS_JSON,
-                    MODEL_CARD, MODEL_KEYS, MODELS_DIR, REPORTS_DIR, RUN_META,
-                    VECTORIZER_FILE, model_name, model_path)
+from config import (DATA_DIR, DB_PATH, FIGURES_DIR, LABEL_NAMES, METRICS_JSON,
+                    MODEL_CARD, MODEL_KEYS, MODELS_DIR, PROJECT_ROOT, REPORTS_DIR,
+                    RUN_META, VECTORIZER_FILE, model_name, model_path)
 from db import (fetch_predictions, log_prediction, record_feedback,
                 summary_stats)
 from explain import explain_prediction, global_top_features
@@ -53,6 +54,47 @@ try:
 except ImportError as _exc:  # pragma: no cover - depends on local install
     extract_text_from_image = extract_text_from_url = None
     EXTRACT_ERROR = str(_exc)
+
+
+def _bootstrap_pipeline() -> None:
+    """
+    First-run setup for a fresh deploy container.
+
+    Streamlit Community Cloud gives every deploy a brand-new filesystem, and
+    data/*.csv + models/*.joblib are gitignored (they're derived artifacts,
+    not source). This extracts the dataset from the committed archive.zip
+    and trains the models if they aren't already on disk. Safe to call on
+    every app startup - each step no-ops once its output already exists, so
+    subsequent reruns/restarts are instant.
+    """
+    need_data = not (DATA_DIR / "Fake.csv").exists() or not (DATA_DIR / "True.csv").exists()
+    if need_data:
+        with st.spinner("First run: extracting dataset from archive.zip..."):
+            result = subprocess.run(
+                [sys.executable, str(PROJECT_ROOT / "src" / "setup_data.py")],
+                capture_output=True, text=True,
+            )
+            print(result.stdout)
+            if result.returncode != 0:
+                st.error("Failed to extract the dataset from archive.zip. Check the app logs.")
+                print(result.stderr)
+                st.stop()
+
+    need_models = not (MODELS_DIR / VECTORIZER_FILE).exists()
+    if need_models:
+        with st.spinner("First run: training models (this can take a minute or two)..."):
+            result = subprocess.run(
+                [sys.executable, str(PROJECT_ROOT / "src" / "train.py")],
+                capture_output=True, text=True,
+            )
+            print(result.stdout)
+            if result.returncode != 0:
+                st.error("Model training failed. Check the app logs.")
+                print(result.stderr)
+                st.stop()
+
+
+_bootstrap_pipeline()
 
 RESULT_KEY = "classification_result"
 BATCH_KEY = "batch_result"
